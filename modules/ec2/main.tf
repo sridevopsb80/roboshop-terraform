@@ -42,9 +42,22 @@ resource "aws_instance" "main" {
     vault_token = var.vault_token
   }))
 
-  tags = {
-    Name = "${var.name}-${var.env}"
+  root_block_device {
+    encrypted  = true
+    kms_key_id = var.kms_arn
   }
+
+  tags = {
+    Name    = "${var.name}-${var.env}"
+    Monitor = "true"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      ami
+    ]
+  }
+
 }
 
 resource "aws_route53_record" "instance" {

@@ -1,6 +1,7 @@
 env           = "dev"
 bastion_nodes = ["172.31.91.201/32"]
 zone_id       = "Z00376861T6KFA01SJSIS"
+kms_arn       = "arn:aws:kms:us-east-1:633788536644:key/7def5f86-30a6-4287-a850-dba888623362"
 
 vpc = {
   cidr               = "10.10.0.0/16"
@@ -15,48 +16,49 @@ vpc = {
 }
 
 db = {
-    mongo = {
-      subnet_ref    = "db"
-      instance_type = "t3.small"
-      allow_port    = 27017
-      allow_sg_cidr = ["10.10.4.0/24", "10.10.5.0/24"]
-    }
-    mysql = {
-      subnet_ref    = "db"
-      instance_type = "t3.small"
-      allow_port    = 3306
-      allow_sg_cidr = ["10.10.4.0/24", "10.10.5.0/24"]
-    }
-    rabbitmq = {
-      subnet_ref    = "db"
-      instance_type = "t3.small"
-      allow_port    = 5672
-      allow_sg_cidr = ["10.10.4.0/24", "10.10.5.0/24"]
-    }
-    redis = {
-      subnet_ref    = "db"
-      instance_type = "t3.small"
-      allow_port    = 6379
-      allow_sg_cidr = ["10.10.4.0/24", "10.10.5.0/24"]
-    }
+  mongo = {
+    subnet_ref    = "db"
+    instance_type = "t3.small"
+    allow_port    = 27017
+    allow_sg_cidr = ["10.10.4.0/24", "10.10.5.0/24"]
+  }
+  mysql = {
+    subnet_ref    = "db"
+    instance_type = "t3.small"
+    allow_port    = 3306
+    allow_sg_cidr = ["10.10.4.0/24", "10.10.5.0/24"]
+  }
+  rabbitmq = {
+    subnet_ref    = "db"
+    instance_type = "t3.small"
+    allow_port    = 5672
+    allow_sg_cidr = ["10.10.4.0/24", "10.10.5.0/24"]
+  }
+  redis = {
+    subnet_ref    = "db"
+    instance_type = "t3.small"
+    allow_port    = 6379
+    allow_sg_cidr = ["10.10.4.0/24", "10.10.5.0/24"]
+  }
 }
 
 eks = {
   eks_version = "1.30"
 
   node_groups = {
-    main-spot = {
+    main-spot1 = {
       max_size       = 3
       min_size       = 1
-      instance_types = ["t3.medium"]
+      instance_types = ["t3.xlarge"]
       capacity_type  = "SPOT"
     }
   }
 
   add_ons = {
-    vpc-cni    = "v1.18.3-eksbuild.2"
-    kube-proxy = "v1.30.3-eksbuild.2"
-    coredns    = "v1.11.1-eksbuild.11"
+    vpc-cni                = "v1.18.3-eksbuild.2"
+    kube-proxy             = "v1.30.3-eksbuild.2"
+    coredns                = "v1.11.1-eksbuild.11"
+    eks-pod-identity-agent = "v1.3.2-eksbuild.2"
   }
 
   eks-iam-access = {

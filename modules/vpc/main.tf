@@ -3,7 +3,8 @@ resource "aws_vpc" "main" {
   cidr_block = var.cidr
 
   tags = {
-    Name = "${var.env}-vpc"
+    Name                                   = "${var.env}-vpc"
+    "kubernetes.io/cluster/${var.env}-eks" = "owned"
   }
 
 }
@@ -30,7 +31,8 @@ resource "aws_subnet" "web" {
   availability_zone = var.availability_zones[count.index]
 
   tags = {
-    Name = "web-subnet-${split("-", var.availability_zones[count.index])[2]}"
+    Name                                   = "web-subnet-${split("-", var.availability_zones[count.index])[2]}"
+    "kubernetes.io/cluster/${var.env}-eks" = "owned"
   }
 }
 
@@ -41,7 +43,9 @@ resource "aws_subnet" "app" {
   availability_zone = var.availability_zones[count.index]
 
   tags = {
-    Name = "app-subnet-${split("-", var.availability_zones[count.index])[2]}"
+    Name                                   = "app-subnet-${split("-", var.availability_zones[count.index])[2]}"
+    "kubernetes.io/cluster/${var.env}-eks" = "owned"
+    "kubernetes.io/role/internal-elb"      = 1
   }
 }
 
@@ -52,7 +56,8 @@ resource "aws_subnet" "db" {
   availability_zone = var.availability_zones[count.index]
 
   tags = {
-    Name = "db-subnet-${split("-", var.availability_zones[count.index])[2]}"
+    Name                                   = "db-subnet-${split("-", var.availability_zones[count.index])[2]}"
+    "kubernetes.io/cluster/${var.env}-eks" = "owned"
   }
 }
 
@@ -63,7 +68,9 @@ resource "aws_subnet" "public" {
   availability_zone = var.availability_zones[count.index]
 
   tags = {
-    Name = "public-subnet-${split("-", var.availability_zones[count.index])[2]}"
+    Name                                   = "public-subnet-${split("-", var.availability_zones[count.index])[2]}"
+    "kubernetes.io/cluster/${var.env}-eks" = "owned"
+    "kubernetes.io/role/elb"               = 1
   }
 }
 
@@ -194,4 +201,76 @@ resource "aws_nat_gateway" "main" {
     Name = "nat-gw-${split("-", var.availability_zones[count.index])[2]}"
   }
 }
+
+
+# Flow Logs
+resource "aws_cloudwatch_log_group" "vpc-flow-logs" {
+  name       = "vpc-flow-logs-${var.env}"
+  kms_key_id = var.kms_key_id
+
+  tags = {
+    env  = "dev"
+    Name = "vpc-flow-logs-${var.env}"
+  }
+}
+
+resource "aws_flow_log" "vpc-flow-logs" {
+  iam_role_arn    = aws_iam_role.vpc-flow-logs.arn
+  log_destination = aws_cloudwatch_log_group.vpc-flow-logs.arn
+  traffic_type    = "ALL"
+  vpc_id          = aws_vpc.main.id
+}
+
+#tfsec:ignore:aws-iam-no-policy-wildcards
+resource "aws_iam_role" "vpc-flow-logs" {
+  name = "${var.env}-vpc-flow-logs-role"
+
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : [
+            "vpc-flow-logs.amazonaws.com"
+          ]
+        },
+        "Action" : [
+          "sts:AssumeRole"
+        ]
+      }
+    ]
+  })
+
+  inline_policy {
+    name = "cloudwatch-logs"
+
+    policy = jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Sid" : "VisualEditor0",
+          "Effect" : "Allow",
+          "Action" : [
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          "Resource" : "*"
+        },
+        {
+          "Sid" : "VisualEditor1",
+          "Effect" : "Allow",
+          "Action" : [
+            "logs:DescribeLogStreams",
+            "logs:CreateLogGroup"
+          ],
+          "Resource" : "arn:aws:logs:us-east-1:633788536644:log-group:vpc-flow-logs-dev:*"
+        }
+      ]
+    })
+  }
+
+}
+
+
 
